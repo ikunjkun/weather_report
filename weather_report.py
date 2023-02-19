@@ -4,6 +4,7 @@ from PIL import Image,ImageTk
 from tkinter import messagebox
 import json
 import requests
+from bs4 import BeautifulSoup
 
 
 class App:
@@ -12,8 +13,8 @@ class App:
         self.window=Tk()
         self.window.iconphoto(False, PhotoImage(file='./img/title.gif'))
         self.window.title('天气预报')
-        width=600
-        height=400
+        width=800
+        height=700
         left=(self.window.winfo_screenwidth()-width)/2
         top=(self.window.winfo_screenheight()-height)/2   
         self.window.geometry('%dx%d+%d+%d'%(width,height,left,top))
@@ -21,6 +22,7 @@ class App:
         self.cerate_widgets()
         self.cerate_widgets()
         self.set_widgets()
+        self.show_local_weather()
         mainloop()
 
 
@@ -58,7 +60,21 @@ class App:
         self.menu3.add_command(label='其他',command='')
 
 
+
+
+    def show_local_weather(self):
+        response = requests.get('https://api64.ipify.org?format=json').json()
+        ip = str(response["ip"])
+        url = "https://restapi.amap.com/v3/ip?ip="+ip+"&output=xml&key=edcdc07cd21b7d132db19be121ca8b2c"
+        response = requests.get(url=url)
+        soup = BeautifulSoup(response.text,"xml")
+        self.local_city=soup.city.string[:-1]
+        self.get_city_weather(self.local_city)
+        self.location.append(self.local_city)
+
         
+    
+
     
     def quit_window(self):
         ret=messagebox.askyesno('退出','是否要退出？')
@@ -95,7 +111,7 @@ class App:
                     messagebox.showwarning('警告','此城市已添加，请勿重复添加！')
                 else:
                     self.location.append(city)
-                    self.get_city_weather(city_list[city],city)
+                    self.get_city_weather(city)
                     self.t.destroy()
                 
         if flag == 0:
@@ -104,8 +120,8 @@ class App:
 
 
 
-    def get_city_weather(self,city_id,city_name):
-        url='https://free-api.qweather.com/v7/weather/7d?location='+city_id +'&key=e82f7fb43bdb4bb480c6a8fea0ff945a'
+    def get_city_weather(self,city_name):
+        url='https://free-api.qweather.com/v7/weather/7d?location='+city_list[city_name] +'&key=e82f7fb43bdb4bb480c6a8fea0ff945a'
         response = requests.get(url)
         res = response.json()
         result = res["daily"]
@@ -122,9 +138,9 @@ class App:
         
     def show_city_weather(self,city_data,city_name):
         self.weather_image[city_name] = []
-        self.frame= Frame(self.window,takefocus=True,bg="#87CEEA")
+        self.frame= Frame(self.window,takefocus=True)
         self.note.add(self.frame, text=city_name)
-        self.note.place(x=0,y=0,width=600,height=400)
+        self.note.place(x=0,y=0,width=800,height=700)
         
         self.tree = ttk.Treeview(self.frame)
         self.tree["columns"] = ("weather","min_temperature","max_temperature")
@@ -137,23 +153,32 @@ class App:
         self.tree.heading(column='#1', text='最低气温')
         self.tree.heading(column='#2', text='最高气温')
         self.tree.heading(column='#3', text='日期')
-        self.tree.place(x=0,y=0,width=600,height=300)
-        
+        self.tree.place(x=0,y=0,width=800,height=250)
+        self.tree.tag_configure("evenColor",background="lightblue")
         i = 0
         for date in city_data:
             self.weather_image[city_name].append(PhotoImage(file="./img/"+img_list[city_data[date]["weather"]]+".png"))
-            self.tree.insert('', i,text=city_data[date]["weather"],image=self.weather_image[city_name][i],
+            if i%2 == 1:
+                self.tree.insert('', i,text=city_data[date]["weather"],image=self.weather_image[city_name][i],
+                                 values=(city_data[date]["min_temperature"]+"℃",
+                                city_data[date]["max_temperature"]+"℃",date),tags=("evenColor") )
+            else:
+                self.tree.insert('', i,text=city_data[date]["weather"],image=self.weather_image[city_name][i],
                                  values=(city_data[date]["min_temperature"]+"℃",
                                 city_data[date]["max_temperature"]+"℃",date))
             i += 1
-        Button(self.frame,bg="green",text="查看温度变化图",command=lambda :self.draw_line_char(city_data,city_name)).place(x=240,y=310,width=120,height=50)
+        #Button(self.frame,bg="green",text="查看温度变化图",command=lambda :self.draw_line_char(city_data,city_name)).place(x=240,y=310,width=120,height=50)
+        self.draw_line_char(city_data,city_name)
+        
+        
 
+        
         
 
     def draw_line_char(self,city_data,city_name):
-        self.top=Toplevel()
-        self.canvas=Canvas(self.top,width=800,height=400,bg="#87CEEA")
-        self.canvas.pack()
+        
+        self.canvas=Canvas(self.frame,width=800,height=400,bg="#87CEEA")
+        self.canvas.place(x=0,y=250)
         self.canvas.create_line(100,350,700,350,width=2)
         self.canvas.create_line(100,350,100,30,width=2)
         self.canvas.create_line(400,20,500,20,width=2,fill='red')
