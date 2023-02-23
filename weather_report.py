@@ -5,6 +5,7 @@ from tkinter import messagebox
 import json
 import requests
 from bs4 import BeautifulSoup
+from datetime import datetime
 
 
 class App:
@@ -26,17 +27,27 @@ class App:
         mainloop()
 
 
+    def refresh_weather(self):
+        for frame in self.frame_list:
+            self.note.forget(frame)
+        for city in self.location:
+            self.get_city_weather(self.loca_p[self.location.index(city)],city)
+
+
+        
 
     def cerate_widgets(self):
+        
         self.note=ttk.Notebook()
-        self.frame=Frame()
-        self.tree=ttk.Treeview(self.frame)
+        self.f1 = ttk.Frame()
+        self.tree=ttk.Treeview(self.f1)
         self.menu=Menu(self.window)
         self.window['menu']=self.menu
         self.menu1=Menu(self.menu,tearoff=False)
         self.menu2=Menu(self.menu,tearoff=False)
         self.menu3=Menu(self.menu,tearoff=False)
         self.weather_image={}
+        self.frame_list=[]
 
 
 
@@ -44,6 +55,7 @@ class App:
 
     def set_widgets(self):
         self.location=[]
+        self.loca_p = []
         style = ttk.Style(self.window)
         style.theme_use("default")
         style.configure("Treeview",rowheight=40,
@@ -51,6 +63,7 @@ class App:
                         fieldbackground="#87CEEA", foreground="white")
         self.menu.add_cascade(label='开始',menu=self.menu1)
         self.menu1.add_command(label='其他',command='')
+        self.menu2.add_command(label='刷新',command=lambda:self.refresh_weather())
         self.menu1.add_separator()
         self.menu1.add_command(label='退出',command=self.quit_window)
         self.menu.add_cascade(label='操作',menu=self.menu2)
@@ -143,6 +156,7 @@ class App:
 
 
     def get_city_weather(self,province,city_name):
+        self.loca_p.append(province)
         url='https://free-api.qweather.com/v7/weather/7d?location='+city_list[province][city_name] +'&key=e82f7fb43bdb4bb480c6a8fea0ff945a'
         response = requests.get(url)
         res = response.json()
@@ -162,8 +176,8 @@ class App:
         self.weather_image[city_name] = []
         self.frame= Frame(self.window,takefocus=True)
         self.note.add(self.frame, text=city_name)
+        self.frame_list.append(self.frame)
         self.note.place(x=0,y=0,width=800,height=700)
-        
         self.tree = ttk.Treeview(self.frame)
         self.tree["columns"] = ("weather","min_temperature","max_temperature")
         self.tree.column('#0',anchor=CENTER,minwidth=60,width=70)
@@ -197,17 +211,9 @@ class App:
         
 
     def draw_line_char(self,city_data,city_name):
-        
         self.canvas=Canvas(self.frame,width=800,height=400,bg="#87CEEA")
         self.canvas.place(x=0,y=250)
         self.canvas.create_line(100,350,700,350,width=2,dash=(5,1))
-        '''
-        self.canvas.create_line(400,20,500,20,width=2,fill='red')
-        self.canvas.create_line(400,50,500,50,width=2,fill='yellow')
-        self.canvas.create_text(600,20,text="最高温度",fill='red',font="simHei 15 bold")
-        self.canvas.create_text(600,50,text="最低温度",fill='red',font="simHei 15 bold")
-        '''
-        
         date_list =[]
         max_temperature_scaled =[]
         min_temperature_scaled =[]
@@ -216,30 +222,31 @@ class App:
         min_list = []
         max_list = []
         weather_list = []
-        i=1
         for date in city_data:
-            weather_list.append(city_data[date]["weather"])
             date_list.append(date)
-            max_temperature=int(city_data[date]["max_temperature"])
-            max_list.append(str(max_temperature))
-            min_temperature=int(city_data[date]["min_temperature"])
-            min_list.append(str(min_temperature))
-            max_y=max_temperature+10
-            min_y=min_temperature+10
-            x=100+i*80
-            max_temperature_scaled.append((x,350-(7.5*max_y)))
-            min_temperature_scaled.append((x,350-(7.5*min_y)))
-            i+=1
+            weather_list.append(city_data[date]["weather"])
+            max_list.append(int(city_data[date]["max_temperature"]))
+            min_list.append(int(city_data[date]["min_temperature"]))
+        min_min_t=min(min_list)
+         
+        for i in range(7):
+            max_y=max_list[i]-min_min_t
+            min_y=min_list[i]-min_min_t
+            x=100+(i+1)*80
+            max_temperature_scaled.append((x,220-(7.5*max_y)))
+            min_temperature_scaled.append((x,220-(7.5*min_y)))
             
         self.canvas.create_line(max_temperature_scaled,fill='red')
         self.canvas.create_line(min_temperature_scaled,fill='yellow')
-        
+        self.week_list = ["星期一","星期二","星期三","星期四","星期五","星期六","星期日"]
         for i in range(8):
             x=100+(i*80)
             if i!= 0:
                 self.canvas.create_line(x,350,x,345,width=2)
                 self.canvas.create_text(x,349,text=date_list[i-1],anchor=N)
                 self.canvas.create_text(x,280,text=weather_list[i-1],anchor=N)
+                week_index = datetime.strptime(date_list[i-1],"%Y-%m-%d").weekday()
+                self.canvas.create_text(x,310,text=self.week_list[week_index],anchor=N)
                 self.canvas.create_image(x-7,250,anchor='nw',image=self.weather_image[city_name][i-1])
         '''        
         for i in range(21):
@@ -258,8 +265,7 @@ class App:
             self.canvas.create_oval(x-4,y-4,x+4,y+4,width=1,outline='black',fill='yellow')
             self.canvas.create_text(x,y-15,text=min_list[i],fill='yellow')
             i+=1
-            
-        #self.canvas.create_text(400,380,text=city_name+"最高温度和最低温度变化图",fill='red',font="simHei 15 bold")
+
 
 
 
