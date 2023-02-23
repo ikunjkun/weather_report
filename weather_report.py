@@ -7,7 +7,6 @@ import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
 
-
 class App:
     def __init__(self):
         self.location =[]
@@ -25,19 +24,14 @@ class App:
         self.set_widgets()
         self.show_local_weather()
         mainloop()
-
-
+        
     def refresh_weather(self):
         for frame in self.frame_list:
             self.note.forget(frame)
         for city in self.location:
             self.get_city_weather(self.loca_p[self.location.index(city)],city)
 
-
-        
-
     def cerate_widgets(self):
-        
         self.note=ttk.Notebook()
         self.f1 = ttk.Frame()
         self.tree=ttk.Treeview(self.f1)
@@ -48,10 +42,6 @@ class App:
         self.menu3=Menu(self.menu,tearoff=False)
         self.weather_image={}
         self.frame_list=[]
-
-
-
-
 
     def set_widgets(self):
         self.location=[]
@@ -72,9 +62,6 @@ class App:
         self.menu.add_cascade(label='关于',menu=self.menu3)
         self.menu3.add_command(label='其他',command='')
 
-
-
-
     def show_local_weather(self):
         response = requests.get('https://api64.ipify.org?format=json').json()
         ip = str(response["ip"])
@@ -85,17 +72,11 @@ class App:
         self.local_city=soup.city.string[:-1]
         self.get_city_weather(self.local_province,self.local_city)
         self.location.append(self.local_city)
-
-        
-    
-
-    
+  
     def quit_window(self):
         ret=messagebox.askyesno('退出','是否要退出？')
         if ret:
             self.window.destroy()
-
-
 
     def import_city(self):
         self.t=Toplevel()
@@ -125,7 +106,6 @@ class App:
         self.tb1=ttk.Button(self.t,text='选择',command=lambda :self.select_city(self.tc1.get(),self.tc2.get()))
         self.tb1.pack(pady=10)
 
-
     def show_tc2_value(self,event):
         self.tc2.config(value=[])
         province=self.tc1.get()
@@ -133,9 +113,6 @@ class App:
         for city in city_list[province]:
             cities.append(city)
         self.tc2.config(value=cities)
-
-
-
 
     def select_city(self,province,city_name):
         flag = 0
@@ -147,13 +124,9 @@ class App:
                 else:
                     self.location.append(city)
                     self.get_city_weather(province,city)
-                    self.t.destroy()
-                
+                    self.t.destroy()              
         if flag == 0:
             messagebox.showwarning('警告','城市输入错误，请重新输入！')
-
-
-
 
     def get_city_weather(self,province,city_name):
         self.loca_p.append(province)
@@ -169,9 +142,7 @@ class App:
             data[date]["max_temperature"] = each["tempMax"]
             data[date]["min_temperature"] = each["tempMin"]
         self.show_city_weather(data,city_name)
-
-
-        
+   
     def show_city_weather(self,city_data,city_name):
         self.weather_image[city_name] = []
         self.frame= Frame(self.window,takefocus=True)
@@ -204,12 +175,7 @@ class App:
                                 city_data[date]["max_temperature"]+"℃",date))
             i += 1
         self.draw_line_char(city_data,city_name)
-        
-        
-
-        
-        
-
+           
     def draw_line_char(self,city_data,city_name):
         self.canvas=Canvas(self.frame,width=800,height=400,bg="#87CEEA")
         self.canvas.place(x=0,y=250)
@@ -228,14 +194,12 @@ class App:
             max_list.append(int(city_data[date]["max_temperature"]))
             min_list.append(int(city_data[date]["min_temperature"]))
         min_min_t=min(min_list)
-         
         for i in range(7):
             max_y=max_list[i]-min_min_t
             min_y=min_list[i]-min_min_t
             x=100+(i+1)*80
             max_temperature_scaled.append((x,220-(7.5*max_y)))
-            min_temperature_scaled.append((x,220-(7.5*min_y)))
-            
+            min_temperature_scaled.append((x,220-(7.5*min_y))) 
         self.canvas.create_line(max_temperature_scaled,fill='red')
         self.canvas.create_line(min_temperature_scaled,fill='yellow')
         self.week_list = ["星期一","星期二","星期三","星期四","星期五","星期六","星期日"]
@@ -248,32 +212,19 @@ class App:
                 week_index = datetime.strptime(date_list[i-1],"%Y-%m-%d").weekday()
                 self.canvas.create_text(x,310,text=self.week_list[week_index],anchor=N)
                 self.canvas.create_image(x-7,250,anchor='nw',image=self.weather_image[city_name][i-1])
-        '''        
-        for i in range(21):
-            y=350-(i*15)
-            self.canvas.create_line(100,y,105,y,width=2)
-            self.canvas.create_text(96,y,text=str((i*2)-10),anchor=E)
-        '''
         i=0
         for x,y in max_temperature_scaled:
             self.canvas.create_oval(x-4,y-4,x+4,y+4,width=1,outline='black',fill='red')
             self.canvas.create_text(x,y-15,text=max_list[i],fill='red')
             i+=1
-            
         i=0
         for x,y in min_temperature_scaled:
             self.canvas.create_oval(x-4,y-4,x+4,y+4,width=1,outline='black',fill='yellow')
             self.canvas.create_text(x,y-15,text=min_list[i],fill='yellow')
             i+=1
-
-
-
-
-        
+     
 with open('city_list1.json','r') as f1:
     city_list = json.load(f1)
 with open('picture_list.json','r') as f2:
     img_list = json.load(f2)
-    
-    
 a=App()
